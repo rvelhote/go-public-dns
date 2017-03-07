@@ -28,29 +28,22 @@ import (
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-func TestPublicDNS_LoadFromFile(t *testing.T) {
-    dnsinfo := PublicDNS{}
-    servers, _ := dnsinfo.LoadFromFile("nameservers.csv")
-
+func TestLoadFromFile(t *testing.T) {
+    servers, _ := LoadFromFile("nameservers.csv")
     t.Log(len(servers))
+}
 
+func TestLoadFromURL(t *testing.T) {
+    servers, _ := LoadFromURL("http://public-dns.info/nameservers.csv")
+    t.Log(len(servers))
+}
 
+func TestDumpToDatabase(t *testing.T) {
+    servers, _ := LoadFromFile("nameservers.csv")
+    t.Log(len(servers))
 
     db, _ := sql.Open("sqlite3", "./nameservers.db")
     defer db.Close()
 
-    db.Exec("CREATE TABLE `nameservers` (`ip` VARCHAR(64) PRIMARY KEY, `name` VARCHAR(64) NULL,`country` VARCHAR(64) NULL,`city` VARCHAR(64) NULL, `version` VARCHAR(64) NULL, `error` VARCHAR(64) NULL, `dnssec` VARCHAR(64) NULL, `reliability` VARCHAR(64) NULL, `checked_at` VARCHAR(64) NULL, `created_at` VARCHAR(64) NULL);")
-
-
-
-    tx, _ := db.Begin()
-    stmt, _ := tx.Prepare("insert into nameservers(ip, name, country, city, version, error, dnssec, reliability, checked_at, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-
-
-    for _, client := range servers {
-        stmt.Exec(client.IPAddress, client.Name, client.Country, client.City, client.Version, client.Error, client.DNSSec, client.Reliability, client.CheckedAt, client.CreatedAt)
-
-    }
-
-    tx.Commit()
+    DumpToDatabase(db, servers)
 }

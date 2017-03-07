@@ -26,7 +26,26 @@ import (
     "time"
     "os"
     "github.com/gocarina/gocsv"
+    "net/http"
+    "io"
+    "database/sql"
 )
+
+const TEMP_FILENAME = "nameservers.temp.csv"
+const CREATE_QUERY = `
+CREATE TABLE IF NOT EXISTS 'nameservers' (
+    'ip' VARCHAR(64) PRIMARY KEY,
+    'name' VARCHAR(64) NULL,
+    'country' VARCHAR(64) NULL,
+    'city' VARCHAR(64) NULL,
+    'version' VARCHAR(64) NULL,
+    'error' VARCHAR(64) NULL,
+    'dnssec' VARCHAR(64) NULL,
+    'reliability' VARCHAR(64) NULL,
+    'checked_at' VARCHAR(64) NULL,
+    'created_at' VARCHAR(64) NULL
+);
+`
 
 type PublicDNSInfo struct {
     IPAddress string `csv:"ip"`
@@ -44,7 +63,7 @@ type PublicDNSInfo struct {
 type PublicDNS struct {
 }
 
-func (p *PublicDNS) LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
+func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
     file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, os.ModePerm)
 
     if err != nil {
@@ -61,4 +80,42 @@ func (p *PublicDNS) LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
     }
 
     return servers, nil
+}
+
+func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
+    out, err := os.Create(TEMP_FILENAME)
+    if err != nil {
+        return nil, err
+    }
+
+    defer out.Close()
+
+    resp, err := http.Get(url)
+
+    if err != nil {
+        return nil, err
+    }
+
+    defer resp.Body.Close()
+
+    _, err = io.Copy(out, resp.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    return LoadFromFile(out.Name())
+}
+
+func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) error {
+    db.Exec(CREATE_QUERY)
+
+    tx, _ := db.Begin()
+    stmt, _ := tx.Prepare("insert into nameservers(ip, name, country, city, version, error, dnssec, reliability, checked_at, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
+    for _, client := range servers {
+        stmt.Exec(client.IPAddress, client.Name, client.Country, client.City, client.Version, client.Error, client.DNSSec, client.Reliability, client.CheckedAt, client.CreatedAt)
+    }
+
+    tx.Commit()
+    return nil
 }

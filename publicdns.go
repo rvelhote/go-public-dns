@@ -64,7 +64,7 @@ type PublicDNS struct {
 }
 
 func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
-    file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+    file, err := os.OpenFile(filename, os.O_RDONLY, os.ModePerm)
 
     if err != nil {
         return nil, err

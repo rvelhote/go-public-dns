@@ -1,12 +1,6 @@
 // Package publicdns allows the user to obtain data from public-dns.info, query and manage the data
 package publicdns
 
-import (
-    "testing"
-    "database/sql"
-    _ "github.com/mattn/go-sqlite3"
-)
-
 /*
  * The MIT License (MIT)
  *
@@ -28,16 +22,25 @@ import (
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+import (
+    "testing"
+    "database/sql"
+    _ "github.com/mattn/go-sqlite3"
+)
+
+// TODO Make a smaller test file so we can check for the common file i/o errors and contents of a known file
 func TestLoadFromFile(t *testing.T) {
-    servers, _ := LoadFromFile("nameservers.csv")
-    t.Log(len(servers))
+    //servers, _ := LoadFromFile("nameservers.csv")
+    //t.Log(len(servers))
 }
 
+// TODO Host a file somewhere to avoid using bandwidth of public-dns.info / travis-ci and also to make the test faster
 func TestLoadFromURL(t *testing.T) {
-    servers, _ := LoadFromURL("http://public-dns.info/nameservers.csv")
-    t.Log(len(servers))
+    //servers, _ := LoadFromURL("http://public-dns.info/nameservers.csv")
+    //t.Log(len(servers))
 }
 
+// TODO Test the actual queries and make them useful! Only GetBestFromCountries is useful for the app
 func TestDumpToDatabase(t *testing.T) {
     servers, _ := LoadFromFile("nameservers.csv")
     t.Log(len(servers))
@@ -46,4 +49,13 @@ func TestDumpToDatabase(t *testing.T) {
     defer db.Close()
 
     DumpToDatabase(db, servers)
+
+    xx := PublicDNS{ db: db }
+    xx.GetAllFromCountry("PT")
+
+    a, _ := xx.GetBestFromCountry("PT")
+    t.Log(a.IPAddress)
+
+    b, _ := xx.GetBestFromCountries([]interface{}{"PT", "US", "CM", "JP"})
+    t.Log(b)
 }

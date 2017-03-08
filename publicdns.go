@@ -29,6 +29,7 @@ import (
     "net/http"
     "io"
     "database/sql"
+    "strings"
 )
 
 const TEMP_FILENAME = "nameservers.temp.csv"
@@ -58,9 +59,6 @@ type PublicDNSInfo struct {
     Reliability string `csv:"reliability"`
     CheckedAt time.Time `csv:"checked_at"`
     CreatedAt time.Time `csv:"created_at"`
-}
-
-type PublicDNS struct {
 }
 
 func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
@@ -118,4 +116,74 @@ func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) error {
 
     tx.Commit()
     return nil
+}
+
+
+type PublicDNS struct {
+    db *sql.DB
+}
+
+func (p *PublicDNS) GetAllFromCountry(country string) ([]*PublicDNSInfo, error) {
+    count := 0
+    p.db.QueryRow("SELECT COUNT(ip) FROM nameservers as n WHERE n.country = ?", country).Scan(&count)
+
+    result, err := p.db.Query("SELECT ip, country FROM nameservers as n WHERE n.country = ?", country)
+
+    if err != nil {
+        return nil, err
+    }
+
+    defer result.Close()
+    dnsinfo := make([]*PublicDNSInfo, 0)
+
+    for result.Next() {
+        info := &PublicDNSInfo{}
+        result.Scan(&info.IPAddress, &info.Country)
+        dnsinfo = append(dnsinfo, info)
+    }
+
+    return dnsinfo, nil
+
+}
+
+func (p *PublicDNS) GetBestFromCountry(country string) (*PublicDNSInfo, error) {
+    result := p.db.QueryRow("select ip, country from nameservers where country = ? order by reliability DESC LIMIT 1", country)
+
+    info := &PublicDNSInfo{}
+    err := result.Scan(&info.IPAddress, &info.Country)
+
+    if err != nil {
+        return nil, err
+    }
+
+    return info, nil
+}
+
+func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*PublicDNSInfo, error) {
+    placeholders := "?" + strings.Repeat(", ?", len(countries) - 1)
+    stmt, err1 := p.db.Prepare("select ip, country from nameservers as n where n.country in (" + placeholders + ") group by n.country having max(n.reliability)")
+
+    if err1 != nil {
+        return nil, err1
+    }
+
+    defer stmt.Close()
+
+    result, err2 := stmt.Query(countries...)
+
+    if err2 != nil {
+        return nil, err2
+    }
+
+    defer result.Close()
+
+    dnsinfo := make([]*PublicDNSInfo, 0)
+
+    for result.Next() {
+        info := &PublicDNSInfo{}
+        result.Scan(&info.IPAddress, &info.Country)
+        dnsinfo = append(dnsinfo, info)
+    }
+
+    return dnsinfo, nil
 }

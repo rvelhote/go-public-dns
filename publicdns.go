@@ -83,9 +83,8 @@ func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
 
 // LoadFromURL takes a URL with a CSV file, downloads the file and attempts to load the file contents using the
 // previously refered LoadFromFile. A filename called nameservers.temp.csv will be created.
-// TODO Delete the temporary file at the end using defer
 func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
-	out, _ := os.Create("nameservers.temp.csv")
+	out, _ := os.Create("./nameservers.temp.csv")
 	defer out.Close()
 
 	resp, err := http.Get(url)
@@ -96,6 +95,8 @@ func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
 
 	defer resp.Body.Close()
 	io.Copy(out, resp.Body)
+
+	defer os.Remove("./nameservers.temp.csv")
 
 	return LoadFromFile(out.Name())
 }

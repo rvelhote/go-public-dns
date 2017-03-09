@@ -25,8 +25,8 @@ package publicdns
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
-	"testing"
 	"os"
+	"testing"
 )
 
 // TODO Make a smaller test file so we can check for the common file i/o errors and contents of a known file

@@ -34,35 +34,35 @@ import (
 
 // PublicDNSInfo is the structure that mimics the fields that belong CSV file that can be obtained from public-dns.info.
 type PublicDNSInfo struct {
-    // IPAddress is the ipv4 address of the server
-	IPAddress   string    `csv:"ip"`
+	// IPAddress is the ipv4 address of the server
+	IPAddress string `csv:"ip"`
 
-    // Name is the hostname of the server if the server has a hostname
-	Name        string    `csv:"name"`
+	// Name is the hostname of the server if the server has a hostname
+	Name string `csv:"name"`
 
-    // Country is the two-letter ISO 3166-1 alpha-2 code of the country
-	Country     string    `csv:"country_id"`
+	// Country is the two-letter ISO 3166-1 alpha-2 code of the country
+	Country string `csv:"country_id"`
 
-    // City specifies the city that the server is hosted on
-	City        string    `csv:"city"`
+	// City specifies the city that the server is hosted on
+	City string `csv:"city"`
 
-    // Version is the software version of the dns daemon that the server is using
-	Version     string    `csv:"version"`
+	// Version is the software version of the dns daemon that the server is using
+	Version string `csv:"version"`
 
-    // Error is the error that the server returned. Probably will be empty if you use the valid nameserver dataset
-	Error       string    `csv:"error"`
+	// Error is the error that the server returned. Probably will be empty if you use the valid nameserver dataset
+	Error string `csv:"error"`
 
-    // DNSSec is a boolean to indicate if the server supports DNSSec or not
-	DNSSec      string    `csv:"dnssec"`
+	// DNSSec is a boolean to indicate if the server supports DNSSec or not
+	DNSSec string `csv:"dnssec"`
 
-    // Realiability is a normalized value - from 0.0 - 1.0 - to indicate how stable the server is
-	Reliability string    `csv:"reliability"`
+	// Realiability is a normalized value - from 0.0 - 1.0 - to indicate how stable the server is
+	Reliability string `csv:"reliability"`
 
-    // CheckedAt is a timestamp to indicate the date that the server was last checked
-	CheckedAt   time.Time `csv:"checked_at"`
+	// CheckedAt is a timestamp to indicate the date that the server was last checked
+	CheckedAt time.Time `csv:"checked_at"`
 
-    // CreatedAt is a timestamp to indicate when the server was inserted in the database
-	CreatedAt   time.Time `csv:"created_at"`
+	// CreatedAt is a timestamp to indicate when the server was inserted in the database
+	CreatedAt time.Time `csv:"created_at"`
 }
 
 // LoadFromFile takes a filename (assumed to be a CSV) and loads the server data contained in that file.
@@ -120,7 +120,7 @@ func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
 // TODO Create an index for Country, Reliability and IP
 // TODO Fix the schema and the data types of each field to be something meaningful instead of 100% varchar
 func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) (int64, error) {
-	db.Exec(`DROP TABLE nameservers`);
+	db.Exec(`DROP TABLE nameservers`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS 'nameservers' (
             'ip' VARCHAR(64) PRIMARY KEY,
             'name' VARCHAR(64) NULL,

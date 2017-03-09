@@ -191,7 +191,7 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*PublicDNSInfo, error) 
 // parameter so for many countries it will always return the same server (for the US it's always Google's DNS server).
 // For countries that have less reliable DNS servers (such as those located in Africa) this could be more useful.
 func (p *PublicDNS) GetBestFromCountry(country string) (*PublicDNSInfo, error) {
-	result := p.db.QueryRow("select ip, country from nameservers where country = ? order by reliability DESC LIMIT 1", country)
+	result := p.db.QueryRow("SELECT ip, country FROM nameservers WHERE country = ? ORDER BY reliability DESC LIMIT 1", country)
 
 	info := &PublicDNSInfo{}
 	err := result.Scan(&info.IPAddress, &info.Country)
@@ -207,7 +207,7 @@ func (p *PublicDNS) GetBestFromCountry(country string) (*PublicDNSInfo, error) {
 // for each of the requested countries.
 func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*PublicDNSInfo, error) {
 	placeholders := "?" + strings.Repeat(", ?", len(countries)-1)
-	stmt, err1 := p.db.Prepare("select ip, country from nameservers as n where n.country in (" + placeholders + ") group by n.country having max(n.reliability)")
+	stmt, err1 := p.db.Prepare("SELECT ip, country FROM nameservers AS n WHERE n.country IN (" + placeholders + ") GROUP BY n.country HAVING MAX(n.reliability)")
 
 	if err1 != nil {
 		return nil, err1

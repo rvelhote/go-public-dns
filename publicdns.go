@@ -174,7 +174,8 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*PublicDNSInfo, error) 
 	}
 
 	defer result.Close()
-	dnsinfo := make([]*PublicDNSInfo, 0)
+
+	var dnsinfo []*PublicDNSInfo
 
 	for result.Next() {
 		info := &PublicDNSInfo{}
@@ -222,7 +223,7 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*PublicDNSI
 
 	defer result.Close()
 
-	dnsinfo := make([]*PublicDNSInfo, 0)
+	var dnsinfo []*PublicDNSInfo
 
 	for result.Next() {
 		info := &PublicDNSInfo{}

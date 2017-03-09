@@ -28,4 +28,5 @@ _testmain.go
 
 #
 **.db
-**.csv
+nameservers.csv
+nameservers.temp.csv

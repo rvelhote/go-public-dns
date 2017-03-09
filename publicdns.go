@@ -76,11 +76,7 @@ func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
 	defer file.Close()
 
 	servers := []*PublicDNSInfo{}
-	err = gocsv.UnmarshalFile(file, &servers)
-
-	if err != nil {
-		return nil, err
-	}
+	gocsv.UnmarshalFile(file, &servers)
 
 	return servers, nil
 }
@@ -89,11 +85,7 @@ func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
 // previously refered LoadFromFile. A filename called nameservers.temp.csv will be created.
 // TODO Delete the temporary file at the end using defer
 func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
-	out, err := os.Create("nameservers.temp.csv")
-	if err != nil {
-		return nil, err
-	}
-
+	out, _ := os.Create("nameservers.temp.csv")
 	defer out.Close()
 
 	resp, err := http.Get(url)
@@ -103,18 +95,15 @@ func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
 	}
 
 	defer resp.Body.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return nil, err
-	}
+	io.Copy(out, resp.Body)
 
 	return LoadFromFile(out.Name())
 }
 
 // DumpToDatabase dumps a complete server dataset into the selected database instance. It will create the database
 // if it does not exist and insert all records present in the 'servers' variable. This function will insert all records
-// in a single transaction. The test data indicates about 40000 records but the performance seems perfectly fine.
+// in a single transaction. The test data indicates about 40000 records but the performance seems perfectly fine. Also
+// consider that the table will be dropped.
 //
 // The database schema amounts to the same fields as the CSV value that you can find at public-dns.info.
 // - IP (the ipv4 address of the server)
@@ -130,7 +119,8 @@ func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
 //
 // TODO Create an index for Country, Reliability and IP
 // TODO Fix the schema and the data types of each field to be something meaningful instead of 100% varchar
-func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) error {
+func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) (int64, error) {
+	db.Exec(`DROP TABLE nameservers`);
 	db.Exec(`CREATE TABLE IF NOT EXISTS 'nameservers' (
             'ip' VARCHAR(64) PRIMARY KEY,
             'name' VARCHAR(64) NULL,
@@ -143,20 +133,25 @@ func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) error {
             'checked_at' VARCHAR(64) NULL,
             'created_at' VARCHAR(64) NULL);`)
 
-	tx, _ := db.Begin()
-	stmt, _ := tx.Prepare("insert into nameservers(ip, name, country, city, version, error, dnssec, reliability, checked_at, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	var total int64 = 0
 
-	for _, client := range servers {
-		stmt.Exec(client.IPAddress, client.Name, client.Country, client.City, client.Version, client.Error, client.DNSSec, client.Reliability, client.CheckedAt, client.CreatedAt)
+	tx, err := db.Begin()
+
+	if err != nil {
+		return total, err
 	}
 
-	err := tx.Commit()
+	stmt, _ := tx.Prepare("insert into nameservers(ip, name, country, city, version, error, dnssec, reliability, checked_at, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
-    if err != nil {
-        return err
-    }
+	// TODO Should we check for an error while creating the statement or just count on the transaction to fail?
+	for _, client := range servers {
+		r, _ := stmt.Exec(client.IPAddress, client.Name, client.Country, client.City, client.Version, client.Error, client.DNSSec, client.Reliability, client.CheckedAt, client.CreatedAt)
+		n, _ := r.RowsAffected()
+		total = total + n
+	}
 
-	return nil
+	tx.Commit()
+	return total, nil
 }
 
 // PublicDNS is the structure that is used to perform queries on the nameservers dataset that was stored in a database.

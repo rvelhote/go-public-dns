@@ -133,7 +133,7 @@ func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) (int64, error) {
             'checked_at' VARCHAR(64) NULL,
             'created_at' VARCHAR(64) NULL);`)
 
-	var total int64 = 0
+	var total int64
 
 	tx, err := db.Begin()
 

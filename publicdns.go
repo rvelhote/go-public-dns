@@ -32,8 +32,8 @@ import (
 	"time"
 )
 
-// PublicDNSInfo is the structure that mimics the fields that belong CSV file that can be obtained from public-dns.info.
-type PublicDNSInfo struct {
+// Nameserver is the structure that mimics the fields that belong CSV file that can be obtained from public-dns.info.
+type Nameserver struct {
 	// IPAddress is the ipv4 address of the server
 	IPAddress string `csv:"ip"`
 
@@ -66,7 +66,7 @@ type PublicDNSInfo struct {
 }
 
 // LoadFromFile takes a filename (assumed to be a CSV) and loads the server data contained in that file.
-func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
+func LoadFromFile(filename string) ([]*Nameserver, error) {
 	file, err := os.OpenFile(filename, os.O_RDONLY, os.ModePerm)
 
 	if err != nil {
@@ -75,7 +75,7 @@ func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
 
 	defer file.Close()
 
-	servers := []*PublicDNSInfo{}
+	servers := []*Nameserver{}
 	gocsv.UnmarshalFile(file, &servers)
 
 	return servers, nil
@@ -83,7 +83,7 @@ func LoadFromFile(filename string) ([]*PublicDNSInfo, error) {
 
 // LoadFromURL takes a URL with a CSV file, downloads the file and attempts to load the file contents using the
 // previously refered LoadFromFile. A filename called nameservers.temp.csv will be created.
-func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
+func LoadFromURL(url string) ([]*Nameserver, error) {
 	out, _ := os.Create("./nameservers.temp.csv")
 	defer out.Close()
 
@@ -120,7 +120,7 @@ func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
 //
 // TODO Create an index for Country, Reliability and IP
 // TODO Fix the schema and the data types of each field to be something meaningful instead of 100% varchar
-func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) (int64, error) {
+func DumpToDatabase(db *sql.DB, servers []*Nameserver) (int64, error) {
 	var total int64
 	var query string
 	var fields []string
@@ -223,7 +223,7 @@ type PublicDNS struct {
 // GetAllFromCountry obtains all the DNS servers registered in the database for a specific country. The country letter
 // must be a two-letter ISO 3166-1 alpha-2 code i.e. US, PT, JP.
 // TODO Do we really need to count the amount of records?
-func (p *PublicDNS) GetAllFromCountry(country string) ([]*PublicDNSInfo, error) {
+func (p *PublicDNS) GetAllFromCountry(country string) ([]*Nameserver, error) {
 	count := 0
 	p.db.QueryRow("SELECT COUNT(ip) FROM nameservers as n WHERE n.country = ?", country).Scan(&count)
 
@@ -235,10 +235,10 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*PublicDNSInfo, error) 
 
 	defer result.Close()
 
-	var dnsinfo []*PublicDNSInfo
+	var dnsinfo []*Nameserver
 
 	for result.Next() {
-		info := &PublicDNSInfo{}
+		info := &Nameserver{}
 		result.Scan(&info.IPAddress, &info.Country)
 		dnsinfo = append(dnsinfo, info)
 	}
@@ -250,10 +250,10 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*PublicDNSInfo, error) 
 // GetBestFromCountry obtains the best DNS server from a specific country. This is measured by the reliability
 // parameter so for many countries it will always return the same server (for the US it's always Google's DNS server).
 // For countries that have less reliable DNS servers (such as those located in Africa) this could be more useful.
-func (p *PublicDNS) GetBestFromCountry(country string) (*PublicDNSInfo, error) {
+func (p *PublicDNS) GetBestFromCountry(country string) (*Nameserver, error) {
 	result := p.db.QueryRow("SELECT ip, country FROM nameservers WHERE country = ? ORDER BY reliability DESC LIMIT 1", country)
 
-	info := &PublicDNSInfo{}
+	info := &Nameserver{}
 	err := result.Scan(&info.IPAddress, &info.Country)
 
 	if err != nil {
@@ -265,7 +265,7 @@ func (p *PublicDNS) GetBestFromCountry(country string) (*PublicDNSInfo, error) {
 
 // GetBestFromCountries takes a list of countries (two-letter ISO 3166-1 alpha-2 code) and obtains the best servers
 // for each of the requested countries.
-func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*PublicDNSInfo, error) {
+func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver, error) {
 	placeholders := "?" + strings.Repeat(", ?", len(countries)-1)
 	stmt, err1 := p.db.Prepare("SELECT ip, country FROM nameservers AS n WHERE n.country IN (" + placeholders + ") GROUP BY n.country HAVING MAX(n.reliability)")
 
@@ -283,10 +283,10 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*PublicDNSI
 
 	defer result.Close()
 
-	var dnsinfo []*PublicDNSInfo
+	var dnsinfo []*Nameserver
 
 	for result.Next() {
-		info := &PublicDNSInfo{}
+		info := &Nameserver{}
 		result.Scan(&info.IPAddress, &info.Country)
 		dnsinfo = append(dnsinfo, info)
 	}

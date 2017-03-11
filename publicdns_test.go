@@ -89,7 +89,7 @@ func TestDumpToDatabase(t *testing.T) {
 	os.Remove("./nameservers.test.db")
 }
 
-func loadAndConnect() (*sql.DB, []*PublicDNSInfo) {
+func loadAndConnect() (*sql.DB, []*Nameserver) {
 	servers, _ := LoadFromFile("nameservers.test.csv")
 	db, _ := sql.Open("sqlite3", "./nameservers.test.db")
 	DumpToDatabase(db, servers)

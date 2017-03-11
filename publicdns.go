@@ -121,24 +121,45 @@ func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
 // TODO Create an index for Country, Reliability and IP
 // TODO Fix the schema and the data types of each field to be something meaningful instead of 100% varchar
 func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) (int64, error) {
-	db.Exec(`DROP TABLE 'nameservers'`)
-	db.Exec(`CREATE TABLE IF NOT EXISTS 'nameservers' (
-            'ip' VARCHAR(45) PRIMARY KEY,
-            'name' VARCHAR(64) NULL,
-            'country' VARCHAR(2) NULL,
-            'city' VARCHAR(64) NULL,
-            'version' VARCHAR(16) NULL,
-            'error' VARCHAR(256) NULL,
-            'dnssec' TINYINT NULL,
-            'reliability' FLOAT NULL,
-            'checked_at' DATETIME NULL,
-            'created_at' DATETIME NULL);`)
-
-	db.Exec("CREATE INDEX nameservers_country_index ON nameservers(country);")
-	db.Exec("CREATE INDEX nameservers_country_reliability_index ON nameservers(country,reliability);")
-	db.Exec("CREATE INDEX nameservers_reliability_index ON nameservers(reliability);")
-
 	var total int64
+	var query string
+	var fields []string
+
+	// It's safe to ignore the execution error that my occur.
+	// If there is an problem with the deletion it will be thrown in the table creation query
+	db.Exec(`DROP TABLE 'nameservers'`)
+
+	fields = []string{
+		`'ip' VARCHAR(45) PRIMARY KEY`,
+		`'name' VARCHAR(64) NULL`,
+		`'country' VARCHAR(2) NULL`,
+		`'city' VARCHAR(64) NULL`,
+		`'version' VARCHAR(16) NULL`,
+		`'error' VARCHAR(256) NULL`,
+		`'dnssec' TINYINT NULL`,
+		`'reliability' FLOAT NULL`,
+		`'checked_at' DATETIME NULL`,
+		`'created_at' DATETIME NULL`,
+	}
+
+	query = `CREATE TABLE IF NOT EXISTS 'nameservers' (` + strings.Join(fields, ",") + `);`
+	_, errCreateTable := db.Exec(query)
+
+	if errCreateTable != nil {
+		return total, errCreateTable
+	}
+
+	indexes := []string{
+		"CREATE INDEX nameservers_country_index ON nameservers(country);",
+		"CREATE INDEX nameservers_country_reliability_index ON nameservers(country,reliability);",
+		"CREATE INDEX nameservers_reliability_index ON nameservers(reliability);",
+	}
+
+	_, errCreateIndexes := db.Exec(strings.Join(indexes, ""))
+
+	if errCreateIndexes != nil {
+		return total, errCreateIndexes
+	}
 
 	tx, err := db.Begin()
 
@@ -146,16 +167,50 @@ func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) (int64, error) {
 		return total, err
 	}
 
-	stmt, _ := tx.Prepare("insert into nameservers(ip, name, country, city, version, error, dnssec, reliability, checked_at, created_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	fields = []string{
+		"ip",
+		"name",
+		"country",
+		"city",
+		"version",
+		"error",
+		"dnssec",
+		"reliability",
+		"checked_at",
+		"created_at",
+	}
+
+	query = "INSERT INTO nameservers(" + strings.Join(fields, ",") + ") VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	stmt, prepareErr := tx.Prepare(query)
+
+	if prepareErr != nil {
+		return total, prepareErr
+	}
 
 	// TODO Should we check for an error while creating the statement or just count on the transaction to fail?
 	for _, client := range servers {
-		r, _ := stmt.Exec(client.IPAddress, client.Name, client.Country, client.City, client.Version, client.Error, client.DNSSec, client.Reliability, client.CheckedAt, client.CreatedAt)
+		r, _ := stmt.Exec(
+			client.IPAddress,
+			client.Name,
+			client.Country,
+			client.City,
+			client.Version,
+			client.Error,
+			client.DNSSec,
+			client.Reliability,
+			client.CheckedAt,
+			client.CreatedAt,
+		)
+
 		n, _ := r.RowsAffected()
 		total = total + n
 	}
 
-	tx.Commit()
+	if txErr := tx.Commit(); txErr != nil {
+		tx.Rollback()
+		return 0, txErr
+	}
+
 	return total, nil
 }
 

@@ -53,7 +53,7 @@ type PublicDNSInfo struct {
 	Error string `csv:"error"`
 
 	// DNSSec is a boolean to indicate if the server supports DNSSec or not
-	DNSSec string `csv:"dnssec"`
+	DNSSec bool `csv:"dnssec"`
 
 	// Realiability is a normalized value - from 0.0 - 1.0 - to indicate how stable the server is
 	Reliability string `csv:"reliability"`
@@ -121,18 +121,22 @@ func LoadFromURL(url string) ([]*PublicDNSInfo, error) {
 // TODO Create an index for Country, Reliability and IP
 // TODO Fix the schema and the data types of each field to be something meaningful instead of 100% varchar
 func DumpToDatabase(db *sql.DB, servers []*PublicDNSInfo) (int64, error) {
-	db.Exec(`DROP TABLE nameservers`)
+	db.Exec(`DROP TABLE 'nameservers'`)
 	db.Exec(`CREATE TABLE IF NOT EXISTS 'nameservers' (
-            'ip' VARCHAR(64) PRIMARY KEY,
+            'ip' VARCHAR(45) PRIMARY KEY,
             'name' VARCHAR(64) NULL,
-            'country' VARCHAR(64) NULL,
+            'country' VARCHAR(2) NULL,
             'city' VARCHAR(64) NULL,
-            'version' VARCHAR(64) NULL,
-            'error' VARCHAR(64) NULL,
-            'dnssec' VARCHAR(64) NULL,
-            'reliability' VARCHAR(64) NULL,
-            'checked_at' VARCHAR(64) NULL,
-            'created_at' VARCHAR(64) NULL);`)
+            'version' VARCHAR(16) NULL,
+            'error' VARCHAR(256) NULL,
+            'dnssec' TINYINT NULL,
+            'reliability' FLOAT NULL,
+            'checked_at' DATETIME NULL,
+            'created_at' DATETIME NULL);`)
+
+	db.Exec("CREATE INDEX nameservers_country_index ON nameservers(country);")
+	db.Exec("CREATE INDEX nameservers_country_reliability_index ON nameservers(country,reliability);")
+	db.Exec("CREATE INDEX nameservers_reliability_index ON nameservers(reliability);")
 
 	var total int64
 

@@ -53,7 +53,7 @@ func TestLoadFailedFileLoading(t *testing.T) {
 
 // TODO Host a file somewhere to avoid using bandwidth of public-dns.info / travis-ci and also to make the test faster
 func TestLoadFromURL(t *testing.T) {
-	servers, err := LoadFromURL("http://public-dns.info/nameservers.csv")
+	servers, err := LoadFromURL("https://raw.githubusercontent.com/rvelhote/go-public-dns/master/nameservers.test.csv")
 
 	if servers == nil || err != nil {
 		t.Error("File should have been loaded from the test URL and some servers should have been processed")

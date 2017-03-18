@@ -217,7 +217,7 @@ func DumpToDatabase(db *sql.DB, servers []*Nameserver) (int64, error) {
 // PublicDNS is the structure that is used to perform queries on the nameservers dataset that was stored in a database.
 // The only parameter is an SQL connection instance. You can use any server that is supported by Golang.
 type PublicDNS struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
 // GetAllFromCountry obtains all the DNS servers registered in the database for a specific country. The country letter
@@ -225,9 +225,9 @@ type PublicDNS struct {
 // TODO Do we really need to count the amount of records?
 func (p *PublicDNS) GetAllFromCountry(country string) ([]*Nameserver, error) {
 	count := 0
-	p.db.QueryRow("SELECT COUNT(ip) FROM nameservers as n WHERE n.country = ?", country).Scan(&count)
+	p.DB.QueryRow("SELECT COUNT(ip) FROM nameservers as n WHERE n.country = ?", country).Scan(&count)
 
-	result, err := p.db.Query("SELECT ip, country FROM nameservers as n WHERE n.country = ?", country)
+	result, err := p.DB.Query("SELECT ip, country FROM nameservers as n WHERE n.country = ?", country)
 
 	if err != nil {
 		return nil, err
@@ -251,7 +251,7 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*Nameserver, error) {
 // parameter so for many countries it will always return the same server (for the US it's always Google's DNS server).
 // For countries that have less reliable DNS servers (such as those located in Africa) this could be more useful.
 func (p *PublicDNS) GetBestFromCountry(country string) (*Nameserver, error) {
-	result := p.db.QueryRow("SELECT ip, country FROM nameservers WHERE country = ? ORDER BY reliability DESC LIMIT 1", country)
+	result := p.DB.QueryRow("SELECT ip, country FROM nameservers WHERE country = ? ORDER BY reliability DESC LIMIT 1", country)
 
 	info := &Nameserver{}
 	err := result.Scan(&info.IPAddress, &info.Country)
@@ -267,7 +267,7 @@ func (p *PublicDNS) GetBestFromCountry(country string) (*Nameserver, error) {
 // for each of the requested countries.
 func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver, error) {
 	placeholders := "?" + strings.Repeat(", ?", len(countries)-1)
-	stmt, err1 := p.db.Prepare("SELECT ip, country FROM nameservers AS n WHERE n.country IN (" + placeholders + ") GROUP BY n.country HAVING MAX(n.reliability)")
+	stmt, err1 := p.DB.Prepare("SELECT ip, country FROM nameservers AS n WHERE n.country IN (" + placeholders + ") GROUP BY n.country HAVING MAX(n.reliability)")
 
 	if err1 != nil {
 		return nil, err1

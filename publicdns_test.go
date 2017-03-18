@@ -115,7 +115,7 @@ func TestFailedDumpToDatabase(t *testing.T) {
 
 func TestPublicDNS_GetBestFromCountries(t *testing.T) {
 	db, _ := loadAndConnect()
-	dns := PublicDNS{db: db}
+	dns := PublicDNS{DB: db}
 
 	info, err := dns.GetBestFromCountry("DE")
 
@@ -134,7 +134,7 @@ func TestPublicDNS_GetBestFromCountries(t *testing.T) {
 
 func TestPublicDNS_GetAllFromCountry(t *testing.T) {
 	db, _ := loadAndConnect()
-	dns := PublicDNS{db: db}
+	dns := PublicDNS{DB: db}
 
 	info, err := dns.GetAllFromCountry("US")
 
@@ -153,7 +153,7 @@ func TestPublicDNS_GetAllFromCountry(t *testing.T) {
 
 func TestPublicDNS_GetBestFromCountry(t *testing.T) {
 	db, _ := loadAndConnect()
-	dns := PublicDNS{db: db}
+	dns := PublicDNS{DB: db}
 
 	info, err := dns.GetBestFromCountries([]interface{}{"US", "DE"})
 

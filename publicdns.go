@@ -77,7 +77,11 @@ func LoadFromFile(filename string) ([]*Nameserver, error) {
 	defer file.Close()
 
 	servers := []*Nameserver{}
-	gocsv.UnmarshalFile(file, &servers)
+	err = gocsv.UnmarshalFile(file, &servers)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return servers, nil
 }
@@ -85,7 +89,7 @@ func LoadFromFile(filename string) ([]*Nameserver, error) {
 // LoadFromURL takes a URL with a CSV file, downloads the file and attempts to load the file contents using the
 // previously refered LoadFromFile. A filename called nameservers.temp.csv will be created.
 func LoadFromURL(url string) ([]*Nameserver, error) {
-	out, err := os.Create("./nameservers.temp.csv")
+	out, err := os.Create("nameservers.temp.csv")
 
 	if err != nil {
 		return nil, err

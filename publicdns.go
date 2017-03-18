@@ -88,14 +88,12 @@ func LoadFromFile(filename string) ([]*Nameserver, error) {
 
 // LoadFromURL takes a URL with a CSV file, downloads the file and attempts to load the file contents using the
 // previously refered LoadFromFile. A filename called nameservers.temp.csv will be created.
-func LoadFromURL(url string) ([]*Nameserver, error) {
-	out, err := os.Create("nameservers.temp.csv")
+func LoadFromURL(url string, filename string) ([]*Nameserver, error) {
+	out, err := os.Create(filename)
 
 	if err != nil {
 		return nil, err
 	}
-
-	defer out.Close()
 
 	resp, err := http.Get(url)
 
@@ -114,7 +112,12 @@ func LoadFromURL(url string) ([]*Nameserver, error) {
 		return nil, errors.New("No bytes written")
 	}
 
-	defer os.Remove("./nameservers.temp.csv")
+	err = out.Sync()
+	if err != nil {
+		return nil, err
+	}
+
+	out.Close()
 
 	return LoadFromFile(out.Name())
 }

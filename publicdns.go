@@ -67,7 +67,7 @@ type Nameserver struct {
 
 // LoadFromFile takes a filename (assumed to be a CSV) and loads the server data contained in that file.
 func LoadFromFile(filename string) ([]*Nameserver, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY, os.ModePerm)
+	file, err := os.Open(filename)
 
 	if err != nil {
 		return nil, err

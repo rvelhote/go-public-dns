@@ -30,6 +30,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"errors"
 )
 
 // Nameserver is the structure that mimics the fields that belong CSV file that can be obtained from public-dns.info.
@@ -84,7 +85,12 @@ func LoadFromFile(filename string) ([]*Nameserver, error) {
 // LoadFromURL takes a URL with a CSV file, downloads the file and attempts to load the file contents using the
 // previously refered LoadFromFile. A filename called nameservers.temp.csv will be created.
 func LoadFromURL(url string) ([]*Nameserver, error) {
-	out, _ := os.Create("./nameservers.temp.csv")
+	out, err := os.Create("./nameservers.temp.csv")
+
+	if err != nil {
+		return nil, err
+	}
+
 	defer out.Close()
 
 	resp, err := http.Get(url)
@@ -94,7 +100,15 @@ func LoadFromURL(url string) ([]*Nameserver, error) {
 	}
 
 	defer resp.Body.Close()
-	io.Copy(out, resp.Body)
+	written, err := io.Copy(out, resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if written == 0 {
+		return nil, errors.New("No bytes written")
+	}
 
 	defer os.Remove("./nameservers.temp.csv")
 

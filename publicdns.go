@@ -248,7 +248,7 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*Nameserver, error) {
 	count := 0
 	p.DB.QueryRow("SELECT COUNT(ip) FROM nameservers as n WHERE n.country = ?", country).Scan(&count)
 
-	result, err := p.DB.Query("SELECT ip, country FROM nameservers as n WHERE n.country = ?", country)
+	result, err := p.DB.Query("SELECT ip, country, city FROM nameservers as n WHERE n.country = ?", country)
 
 	if err != nil {
 		return nil, err
@@ -260,7 +260,7 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*Nameserver, error) {
 
 	for result.Next() {
 		info := &Nameserver{}
-		result.Scan(&info.IPAddress, &info.Country)
+		result.Scan(&info.IPAddress, &info.Country, &info.City)
 		dnsinfo = append(dnsinfo, info)
 	}
 
@@ -272,10 +272,10 @@ func (p *PublicDNS) GetAllFromCountry(country string) ([]*Nameserver, error) {
 // parameter so for many countries it will always return the same server (for the US it's always Google's DNS server).
 // For countries that have less reliable DNS servers (such as those located in Africa) this could be more useful.
 func (p *PublicDNS) GetBestFromCountry(country string) (*Nameserver, error) {
-	result := p.DB.QueryRow("SELECT ip, country FROM nameservers WHERE country = ? ORDER BY reliability DESC LIMIT 1", country)
+	result := p.DB.QueryRow("SELECT ip, country, city FROM nameservers WHERE country = ? ORDER BY reliability DESC LIMIT 1", country)
 
 	info := &Nameserver{}
-	err := result.Scan(&info.IPAddress, &info.Country)
+	err := result.Scan(&info.IPAddress, &info.Country, &info.City)
 
 	if err != nil {
 		return nil, err
@@ -287,8 +287,9 @@ func (p *PublicDNS) GetBestFromCountry(country string) (*Nameserver, error) {
 // GetBestFromCountries takes a list of countries (two-letter ISO 3166-1 alpha-2 code) and obtains the best servers
 // for each of the requested countries.
 func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver, error) {
+    // This will create someting like IN(?, ?, ?) (depending on the number of countries)
 	placeholders := "?" + strings.Repeat(", ?", len(countries)-1)
-	stmt, err1 := p.DB.Prepare("SELECT ip, country FROM nameservers AS n WHERE n.country IN (" + placeholders + ") GROUP BY n.country HAVING MAX(n.reliability)")
+	stmt, err1 := p.DB.Prepare("SELECT ip, country, city FROM nameservers AS n WHERE n.country IN (" + placeholders + ") GROUP BY n.country HAVING MAX(n.reliability)")
 
 	if err1 != nil {
 		return nil, err1
@@ -296,6 +297,7 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 
 	defer stmt.Close()
 
+    // Then, using the variadic operator, we expand the list of countries into the placeholders
 	result, err2 := stmt.Query(countries...)
 
 	if err2 != nil {
@@ -308,7 +310,7 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 
 	for result.Next() {
 		info := &Nameserver{}
-		result.Scan(&info.IPAddress, &info.Country)
+		result.Scan(&info.IPAddress, &info.Country, &info.City)
 		dnsinfo = append(dnsinfo, info)
 	}
 

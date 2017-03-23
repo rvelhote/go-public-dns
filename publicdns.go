@@ -292,10 +292,10 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 	query :=
 		"SELECT n.ip, n.country, n.city " +
 			"FROM nameservers AS n " +
-			"WHERE n.country IN (" + placeholders + ") AND n.reliability > 0 " +
+			"WHERE n.country IN (" + placeholders + ") AND city != '' " +
 			"GROUP BY n.country " +
-			"HAVING MAX(n.reliability) AND MAX(n.checked_at) " +
-			"ORDER BY n.reliability DESC, n.checked_at DESC;`"
+			"HAVING MAX(n.reliability) " +
+			"ORDER BY n.checked_at ASC;`"
 
 	stmt, err1 := p.DB.Prepare(query)
 

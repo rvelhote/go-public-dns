@@ -24,13 +24,13 @@ package publicdns
  */
 import (
 	"database/sql"
+	"errors"
 	"github.com/gocarina/gocsv"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
-	"errors"
 )
 
 // Nameserver is the structure that mimics the fields that belong CSV file that can be obtained from public-dns.info.
@@ -287,9 +287,17 @@ func (p *PublicDNS) GetBestFromCountry(country string) (*Nameserver, error) {
 // GetBestFromCountries takes a list of countries (two-letter ISO 3166-1 alpha-2 code) and obtains the best servers
 // for each of the requested countries.
 func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver, error) {
-    // This will create someting like IN(?, ?, ?) (depending on the number of countries)
+	// This will create someting like IN(?, ?, ?) (depending on the number of countries)
 	placeholders := "?" + strings.Repeat(", ?", len(countries)-1)
-	stmt, err1 := p.DB.Prepare("SELECT ip, country, city FROM nameservers AS n WHERE n.country IN (" + placeholders + ") GROUP BY n.country HAVING MAX(n.reliability)")
+	query :=
+		"SELECT n.ip, n.country, n.city " +
+			"FROM nameservers AS n " +
+			"WHERE n.country IN (" + placeholders + ") AND n.reliability > 0 " +
+			"GROUP BY n.country " +
+			"HAVING MAX(n.reliability) AND MAX(n.checked_at) " +
+			"ORDER BY n.reliability DESC, n.checked_at DESC;`"
+
+	stmt, err1 := p.DB.Prepare(query)
 
 	if err1 != nil {
 		return nil, err1
@@ -297,7 +305,7 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 
 	defer stmt.Close()
 
-    // Then, using the variadic operator, we expand the list of countries into the placeholders
+	// Then, using the variadic operator, we expand the list of countries into the placeholders
 	result, err2 := stmt.Query(countries...)
 
 	if err2 != nil {

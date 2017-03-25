@@ -1,4 +1,4 @@
 ip,name,country_id,city,version,error,dnssec,reliability,checked_at,created_at
 8.8.8.8,google-public-dns-a.google.com.,US,Mountain View,,,true,1.00,2017-02-25T09:15:08Z,2009-12-04T10:01:47Z
 204.152.184.76,or.isc.org.,US,Redwood City,9.10.4-P1,,true,1.00,2017-02-25T09:15:11Z,2009-05-13T01:05:06Z
-194.150.168.168,dns.as250.net.,DE,,,,true,0.73,2017-02-25T09:15:09Z,2009-05-13T01:05:07Z
+194.150.168.168,dns.as250.net.,DE,Berlin,,,true,1.00,2017-02-25T09:15:09Z,2009-05-13T01:05:07Z

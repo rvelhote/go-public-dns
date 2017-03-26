@@ -25,6 +25,7 @@ package publicdns
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/gocarina/gocsv"
 	"io"
 	"net/http"
@@ -289,13 +290,12 @@ func (p *PublicDNS) GetBestFromCountry(country string) (*Nameserver, error) {
 func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver, error) {
 	// This will create someting like IN(?, ?, ?) (depending on the number of countries)
 	placeholders := "?" + strings.Repeat(", ?", len(countries)-1)
-	query :=
-		"SELECT n.ip, n.country, n.city " +
-			"FROM nameservers AS n " +
-			"WHERE n.country IN (" + placeholders + ") AND city != '' " +
-			"GROUP BY n.country " +
-			"HAVING MAX(n.reliability) " +
-			"ORDER BY n.checked_at ASC;`"
+
+	subquery := "SELECT n.ip, n.country, n.city " +
+		"FROM nameservers AS n " +
+		"WHERE n.country IN (" + placeholders + ")  and name != '' and city != '' AND reliability = 1 " +
+		"ORDER BY reliability ASC, n.checked_at ASC"
+	query := fmt.Sprintf("SELECT * FROM (%s) as nn GROUP BY nn.country;", subquery)
 
 	stmt, err1 := p.DB.Prepare(query)
 

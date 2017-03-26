@@ -72,7 +72,7 @@ func TestLoadFromURL(t *testing.T) {
 // TODO Test the actual queries and make them useful! Only GetBestFromCountries is useful for the app
 func TestDumpToDatabase(t *testing.T) {
 	servers, _ := LoadFromFile("nameservers.test.csv")
-	db, _ := sql.Open("sqlite3", "./nameservers.test.db")
+	db, _ := sql.Open("sqlite3", "file::memory:?mode=memory&cache=shared")
 
 	defer db.Close()
 

@@ -34,6 +34,12 @@ import (
 	"time"
 )
 
+// NameserverCountryTally is a structure that will hold the result of the GetTotalServersPerCountry func
+type NameserverCountryTally struct {
+	Country string
+	Total int
+}
+
 // Nameserver is the structure that mimics the fields that belong CSV file that can be obtained from public-dns.info.
 type Nameserver struct {
 	// IPAddress is the ipv4 address of the server
@@ -323,4 +329,30 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 	}
 
 	return dnsinfo, nil
+}
+
+// GetNameserverPerCountryTally obtains a list the total of "good" nameservers that exist per country. In this context
+// "good" means that the server as a hostname (reverse lookup) has city name and its reliability score is 1 (maximum).
+func (p *PublicDNS) GetNameserverPerCountryTally() ([]*NameserverCountryTally, error) {
+	query := "SELECT n.country AS Country, COUNT(n.ip) AS Total " +
+		"FROM nameservers AS n " +
+		"WHERE n.name != '' AND n.city != '' AND n.reliability = 1 " +
+		"GROUP BY n.country"
+
+	rows, err := p.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var nameserverTally []*NameserverCountryTally
+
+	for rows.Next() {
+		tally := &NameserverCountryTally{}
+		rows.Scan(&tally.Country, &tally.Total)
+		nameserverTally = append(nameserverTally, tally)
+	}
+
+	return nameserverTally, nil
 }

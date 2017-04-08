@@ -170,3 +170,18 @@ func TestPublicDNS_GetBestFromCountry(t *testing.T) {
 	}
 
 }
+
+func TestPublicDNS_GetNameserverPerCountryTally(t *testing.T) {
+	db, _ := loadAndConnect()
+	dns := PublicDNS{DB: db}
+
+	info, err := dns.GetNameserverPerCountryTally()
+
+	if err != nil {
+		t.Errorf("GetNameserverPerCountryTally returned error -- %s --", err)
+	}
+
+	if len(info) != 2 {
+		t.Errorf("GetBestFromCountries should have returned 2 servers but returned -- %d --", len(info))
+	}
+}

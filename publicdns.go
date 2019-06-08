@@ -297,7 +297,7 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 	// This will create someting like IN(?, ?, ?) (depending on the number of countries)
 	placeholders := "?" + strings.Repeat(", ?", len(countries)-1)
 
-	subquery := "SELECT n.ip, n.country, n.city " +
+	subquery := "SELECT n.ip, n.country, n.city, n.reliability " +
 		"FROM nameservers AS n " +
 		"WHERE n.country IN (" + placeholders + ")  and name != '' and city != '' " +
 		"ORDER BY reliability DESC, n.checked_at DESC"
@@ -324,7 +324,7 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 
 	for result.Next() {
 		info := &Nameserver{}
-		result.Scan(&info.IPAddress, &info.Country, &info.City)
+		result.Scan(&info.IPAddress, &info.Country, &info.City, &info.Reliability)
 		dnsinfo = append(dnsinfo, info)
 	}
 

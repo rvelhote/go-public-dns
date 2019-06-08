@@ -37,7 +37,7 @@ import (
 // NameserverCountryTally is a structure that will hold the result of the GetTotalServersPerCountry func
 type NameserverCountryTally struct {
 	Country string
-	Total int
+	Total   int
 }
 
 // Nameserver is the structure that mimics the fields that belong CSV file that can be obtained from public-dns.info.
@@ -299,8 +299,8 @@ func (p *PublicDNS) GetBestFromCountries(countries []interface{}) ([]*Nameserver
 
 	subquery := "SELECT n.ip, n.country, n.city " +
 		"FROM nameservers AS n " +
-		"WHERE n.country IN (" + placeholders + ")  and name != '' and city != '' AND reliability = 1 " +
-		"ORDER BY reliability ASC, n.checked_at ASC"
+		"WHERE n.country IN (" + placeholders + ")  and name != '' and city != '' " +
+		"ORDER BY reliability DESC, n.checked_at DESC"
 	query := fmt.Sprintf("SELECT * FROM (%s) as nn GROUP BY nn.country;", subquery)
 
 	stmt, err1 := p.DB.Prepare(query)
